@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JRB Accounting Solutions - Practice Management Software</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .modal { display: none; }
+        .modal.active { display: flex; }
+        .task-card { transition: all 0.3s ease; }
+        .task-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .client-card { transition: all 0.3s ease; }
+        .client-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        
+        /* Welcome Page Styles */
+        .welcome-page {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 9999;
+        }
+        
+        .welcome-content {
+            text-align: center;
+            color: white;
+            padding: 2rem;
+            animation: fadeInUp 1s ease-out;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .logo-placeholder {
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 2rem;
+            font-size: 3rem;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .main-app {
+            display: none;
+        }
+        
+        .main-app.active {
+            display: block;
+        }
+        
+        .welcome-page.hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Welcome Cover Page -->
+    <div id="welcomePage" class="welcome-page">
+        <div class="welcome-content">
+            <!-- Logo Placeholder -->
+            <div class="logo-placeholder">
+                <i class="fas fa-calculator"></i>
+            </div>
+            
+            <h1 class="text-5xl font-bold mb-4">JRB Accounting Solutions</h1>
+            <h2 class="text-2xl font-light mb-8 opacity-90">Practice Management Software</h2>
+            
+            <p class="text-lg max-w-2xl mx-auto mb-12 opacity-80">
+                Streamline your accounting practice with our comprehensive client and task management system. 
+                Designed for efficiency, built for growth.
+            </p>
+            
+            <!-- Enter Button -->
+            <button onclick="enterApplication()" class="mt-12 bg-white text-purple-700 px-8 py-4 rounded-full font-semibold text-lg hover:bg-opacity-90 transition transform hover:scale-105 shadow-xl">
+                <i class="fas fa-sign-in-alt mr-2"></i>Enter System
+            </button>
+            
+            <p class="mt-6 text-sm opacity-70">
+                © 2026 JRB Accounting Solutions. All rights reserved.
+            </p>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div id="mainApp" class="main-app">
+        <!-- Header -->
+        <header class="bg-blue-600 text-white shadow-lg">
+            <div class="container mx-auto px-4 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-calculator text-2xl"></i>
+                        <h1 class="text-2xl font-bold">JRB Accounting Solutions</h1>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <span id="totalClients" class="bg-blue-500 px-3 py-1 rounded-full text-sm">0 Clients</span>
+                        <span id="totalTasks" class="bg-green-500 px-3 py-1 rounded-full text-sm">0 Tasks</span>
+                        <div id="userMenu" class="flex items-center space-x-3">
+                            <span id="currentUser" class="text-sm"></span>
+                            <button id="userMenuBtn" class="relative">
+                                <i class="fas fa-user-circle text-2xl hover:text-blue-200 transition"></i>
+                            </button>
+                            <div id="userDropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg hidden z-50">
+                                <div class="p-2">
+                                    <div id="userInfo" class="px-3 py-2 text-sm text-gray-700 border-b"></div>
+                                    <button id="manageUsersBtn" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 hidden">
+                                        <i class="fas fa-users mr-2"></i>Manage Users
+                                    </button>
+                                    <button id="logoutBtn" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 text-red-600">
+                                        <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <div class="bg-white border-b sticky top-0 z-10">
+            <div class="container mx-auto px-4">
+                <div class="flex space-x-1">
+                    <button onclick="switchTab('dashboard')" class="tab-btn px-6 py-3 text-gray-700 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-600 transition" data-tab="dashboard">
+                        <i class="fas fa-chart-line mr-2"></i>Dashboard
+                    </button>
+                    <button onclick="switchTab('clients')" class="tab-btn px-6 py-3 text-gray-700 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-600 transition" data-tab="clients">
+                        <i class="fas fa-users mr-2"></i>Clients
+                    </button>
+                    <button onclick="switchTab('tasks')" class="tab-btn px-6 py-3 text-gray-700 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-600 transition" data-tab="tasks">
+                        <i class="fas fa-tasks mr-2"></i>Tasks
+                    </button>
+                    <button id="usersTabBtn" onclick="switchTab('users')" class="tab-btn px-6 py-3 text-gray-700 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-600 transition hidden" data-tab="users">
+                        <i class="fas fa-user-shield mr-2"></i>Users
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="container mx-auto px-4 py-8">
+            <!-- Dashboard Tab -->
+            <div id="dashboard" class="tab-content active">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">Dashboard</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-users text-blue-600"></i>
+                            </div>
+                            <span class="text-sm text-gray-500">Total</span>
+                        </div>
+                        <h3 id="statsTotalClients" class="text-2xl font-bold mb-2">0</h3>
+                        <p class="text-gray-600">Clients</p>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-tasks text-green-600"></i>
+                            </div>
+                            <span class="text-sm text-gray-500">Active</span>
+                        </div>
+                        <h3 id="statsActiveTasks" class="text-2xl font-bold mb-2">0</h3>
+                        <p class="text-gray-600">Tasks</p>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-sync-alt text-purple-600"></i>
+                            </div>
+                            <span class="text-sm text-gray-500">Recurring</span>
+                        </div>
+                        <h3 id="statsRecurringTasks" class="text-2xl font-bold mb-2">0</h3>
+                        <p class="text-gray-600">Tasks</p>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-chart-pie text-yellow-600"></i>
+                            </div>
+                            <span class="text-sm text-gray-500">Rate</span>
+                        </div>
+                        <h3 id="statsCompletionRate" class="text-2xl font-bold mb-2">0%</h3>
+                        <p class="text-gray-600">Completion</p>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h3 class="text-lg font-semibold mb-4">Recent Clients</h3>
+                        <div id="recentClients" class="space-y-3">
+                            <!-- Recent clients will be inserted here -->
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h3 class="text-lg font-semibold mb-4">Upcoming Tasks</h3>
+                        <div id="upcomingTasks" class="space-y-3">
+                            <!-- Upcoming tasks will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Clients Tab -->
+            <div id="clients" class="tab-content">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">Client Management</h2>
+                    <button onclick="openClientModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+                        <i class="fas fa-plus mr-2"></i>Add New Client
+                    </button>
+                </div>
+
+                <!-- Search and Filter -->
+                <div class="bg-white rounded-lg shadow p-4 mb-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <input type="text" id="clientSearch" placeholder="Search clients..." class="border rounded-lg px-4 py-2" onkeyup="searchClients()">
+                        <select id="clientFilter" class="border rounded-lg px-4 py-2" onchange="filterClients()">
+                            <option value="">All Clients</option>
+                            <option value="individual">Individual</option>
+                            <option value="business">Company</option>
+                            <option value="trust">Trust</option>
+                        </select>
+                        <select id="sortBy" class="border rounded-lg px-4 py-2" onchange="sortClients()">
+                            <option value="name">Sort by Name</option>
+                            <option value="date">Sort by Date Added</option>
+                            <option value="type">Sort by Type</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Clients Grid -->
+                <div id="clientsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Client cards will be inserted here -->
+                </div>
+            </div>
+
+            <!-- Tasks Tab -->
+            <div id="tasks" class="tab-content">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">Task Management</h2>
+                    <button onclick="openTaskModal()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
+                        <i class="fas fa-plus mr-2"></i>Add New Task
+                    </button>
+                </div>
+
+                <!-- Task Filters -->
+                <div class="bg-white rounded-lg shadow p-4 mb-6">
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                        <input type="text" id="taskSearch" placeholder="Search tasks..." class="border rounded-lg px-4 py-2" onkeyup="searchTasks()">
+                        <select id="taskStatusFilter" class="border rounded-lg px-4 py-2" onchange="filterTasks()">
+                            <option value="">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                        <select id="taskTypeFilter" class="border rounded-lg px-4 py-2" onchange="filterTasks()">
+                            <option value="">All Types</option>
+                            <option value="once-off">Once-off</option>
+                            <option value="recurring">Recurring</option>
+                        </select>
+                        <select id="taskPriorityFilter" class="border rounded-lg px-4 py-2" onchange="filterTasks()">
+                            <option value="">All Priorities</option>
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                            <option value="low">Low</option>
+                        </select>
+                        <select id="taskUserFilter" class="border rounded-lg px-4 py-2" onchange="filterTasks()">
+                            <option value="">All Users</option>
+                            <option value="unassigned">Unassigned</option>
+                            <option value="my-tasks">My Tasks</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Tasks List -->
+                <div id="tasksList" class="space-y-4">
+                    <!-- Task cards will be inserted here -->
+                </div>
+            </div>
+
+            <!-- Users Tab -->
+            <div id="users" class="tab-content">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">User Management</h2>
+                    <button onclick="openUserModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+                        <i class="fas fa-plus mr-2"></i>Add New User
+                    </button>
+                </div>
+
+                <!-- Users Grid -->
+                <div id="usersGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- User cards will be inserted here -->
+                </div>
+            </div>
+        </main>
+
+        <!-- Login Modal -->
+        <div id="loginModal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
+            <div class="bg-white rounded-lg w-full max-w-md m-4">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold">Login to JRB Accounting Solutions</h3>
+                    </div>
+                    
+                    <form id="loginForm" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Username</label>
+                            <input type="text" id="loginUsername" required class="w-full border rounded-lg px-3 py-2" placeholder="Enter your username">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Password</label>
+                            <input type="password" id="loginPassword" required class="w-full border rounded-lg px-3 py-2" placeholder="Enter your password">
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="rememberMe" class="mr-2">
+                            <label for="rememberMe" class="text-sm">Remember me</label>
+                        </div>
+                        <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">
+                            Login
+                        </button>
+                    </form>
+                    
+                    <div class="mt-4 text-center text-sm text-gray-500">
+                        Please contact your administrator for login credentials
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
