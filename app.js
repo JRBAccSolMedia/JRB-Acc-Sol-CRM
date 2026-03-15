@@ -75,6 +75,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function setupEventListeners() {
     document.getElementById('loginForm').addEventListener('submit', handleLogin);
     document.getElementById('userForm').addEventListener('submit', handleUserSubmit);
+    document.getElementById('taskForm').addEventListener('submit', handleTaskSubmit);
     document.getElementById('userMenuBtn').addEventListener('click', toggleUserDropdown);
     document.getElementById('logoutBtn').addEventListener('click', handleLogout);
     document.getElementById('manageUsersBtn').addEventListener('click', () => switchTab('users'));
@@ -373,11 +374,79 @@ function displayClients() {
 // Task Management Functions
 function openTaskModal() {
     if (!checkPermission('create', 'create tasks')) return;
-    showNotification('Task management features coming soon!', 'info');
+    
+    document.getElementById('taskModal').classList.add('active');
+    document.getElementById('taskForm').reset();
+    toggleRecurringFields();
+    updateTaskClientOptions();
+    updateTaskUserOptions();
+}
+
+function closeTaskModal() {
+    document.getElementById('taskModal').classList.remove('active');
+}
+
+function toggleRecurringFields() {
+    const taskType = document.getElementById('taskType').value;
+    const recurringFields = document.getElementById('recurringFields');
+    
+    if (taskType === 'recurring') {
+        recurringFields.classList.remove('hidden');
+    } else {
+        recurringFields.classList.add('hidden');
+    }
+}
+
+function updateTaskClientOptions() {
+    const select = document.getElementById('taskClient');
+    select.innerHTML = '<option value="">No Client</option>' +
+        clients.map(client => `<option value="${client.id}">${client.name}</option>`).join('');
+}
+
+function updateTaskUserOptions() {
+    const select = document.getElementById('taskAssignedUser');
+    const activeUsers = users.filter(user => user.isActive);
+    
+    select.innerHTML = '<option value="">Unassigned</option>' +
+        activeUsers.map(user => `<option value="${user.id}">${user.fullName}</option>`).join('');
+}
+
+function handleTaskSubmit(e) {
+    e.preventDefault();
+    
+    const task = {
+        id: generateId(),
+        title: document.getElementById('taskTitle').value,
+        type: document.getElementById('taskType').value,
+        priority: document.getElementById('taskPriority').value,
+        clientId: document.getElementById('taskClient').value || null,
+        assignedUserId: document.getElementById('taskAssignedUser').value || null,
+        dueDate: document.getElementById('taskDueDate').value,
+        description: document.getElementById('taskDescription').value,
+        status: 'pending',
+        createdDate: new Date().toISOString(),
+        createdBy: currentUser.id,
+        ...(document.getElementById('taskType').value === 'recurring' && {
+            recurringFrequency: document.getElementById('recurringFrequency').value,
+            recurringEndDate: document.getElementById('recurringEndDate').value,
+            recurringDays: Array.from(document.querySelectorAll('.day-checkbox:checked')).map(cb => cb.value)
+        })
+    };
+    
+    tasks.push(task);
+    saveTasks();
+    
+    closeTaskModal();
+    displayTasks();
+    updateDashboard();
+    
+    showNotification('Task added successfully!', 'success');
 }
 
 function displayTasks() {
     const tasksList = document.getElementById('tasksList');
+    const canEdit = hasPermission('edit');
+    const canDelete = hasPermission('delete');
     
     if (tasks.length === 0) {
         tasksList.innerHTML = '<div class="text-center py-12"><p class="text-gray-500">No tasks found. Add your first task to get started.</p></div>';
@@ -385,20 +454,285 @@ function displayTasks() {
     }
     
     tasksList.innerHTML = tasks.map(task => {
+        const client = clients.find(c => c.id === task.clientId);
+        const assignedUser = task.assignedUserId ? users.find(u => u.id === task.assignedUserId) : null;
         const priorityColor = getPriorityColor(task.priority);
         const statusColor = getStatusColor(task.status);
+        const typeIcon = task.type === 'recurring' ? 'fa-sync-alt' : 'fa-clock';
         
         return `
             <div class="task-card bg-white rounded-lg shadow p-6">
                 <div class="flex items-start justify-between">
                     <div class="flex-1">
-                        <h3 class="font-semibold text-lg mb-2">${task.title}</h3>
+                        <div class="flex items-center space-x-3 mb-2">
+                            <h3 class="font-semibold text-lg">${task.title}</h3>
+                            <i class="fas ${typeIcon} text-gray-400" title="${task.type}"></i>
+                        </div>
+                        
                         ${task.description ? `<p class="text-gray-600 mb-3">${task.description}</p>` : ''}
                         
                         <div class="flex flex-wrap items-center gap-2 mb-3">
                             <span class="inline-block px-2 py-1 text-xs rounded-full ${priorityColor}">${task.priority}</span>
                             <span class="inline-block px-2 py-1 text-xs rounded-full ${statusColor}">${task.status}</span>
+                            ${client ? `<span class="inline-block px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700">${client.name}</span>` : ''}
+                            ${assignedUser ? `<span class="inline-block px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700">
+                                <i class="fas fa-user mr-1"></i>${assignedUser.fullName}
+                            </span>` : '<span class="inline-block px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-500">Unassigned</span>'}
                         </div>
+                        
+                        <div class="flex items-center space-x-4 text-sm text-gray-500">
+                            ${task.dueDate ? `<span><i class="fas fa-calendar mr-1"></i>Due: ${formatDate(task.dueDate)}</span>` : ''}
+                            <span><i class="fas fa-plus-circle mr-1"></i>Created: ${formatDate(task.createdDate)}</span>
+                            ${task.type === 'recurring' ? `<span><i class="fas fa-redo mr-1"></i>${task.recurringFrequency}</span>` : ''}
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-col space-x-2 ml-4">
+                        ${task.status !== 'completed' && canEdit ? `
+                            <button onclick="updateTaskStatus('${task.id}', 'in-progress')" class="text-blue-600 hover:text-blue-800 mb-2" title="Mark in progress">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            <button onclick="updateTaskStatus('${task.id}', 'completed')" class="text-green-600 hover:text-green-800 mb-2" title="Mark complete">
+                                <i class="fas fa-check"></i>
+                            </button>
+                        ` : task.status === 'completed' && canEdit ? `
+                            <button onclick="updateTaskStatus('${task.id}', 'pending')" class="text-gray-600 hover:text-gray-800 mb-2" title="Reopen task">
+                                <i class="fas fa-undo"></i>
+                            </button>
+                        ` : ''}
+                        ${canEdit ? `<button onclick="editTask('${task.id}')" class="text-blue-600 hover:text-blue-800 mb-2" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>` : ''}
+                        ${canDelete ? `<button onclick="deleteTask('${task.id}')" class="text-red-600 hover:text-red-800" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function updateTaskStatus(taskId, newStatus) {
+    if (!checkPermission('edit', 'update task status')) return;
+    
+    const taskIndex = tasks.findIndex(t => t.id === taskId);
+    if (taskIndex === -1) return;
+    
+    tasks[taskIndex].status = newStatus;
+    
+    if (newStatus === 'completed') {
+        tasks[taskIndex].completedDate = new Date().toISOString();
+    } else {
+        delete tasks[taskIndex].completedDate;
+    }
+    
+    saveTasks();
+    displayTasks();
+    updateDashboard();
+    
+    showNotification(`Task marked as ${newStatus}!`, 'success');
+}
+
+function editTask(taskId) {
+    if (!checkPermission('edit', 'edit tasks')) return;
+    
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    
+    document.getElementById('taskTitle').value = task.title;
+    document.getElementById('taskType').value = task.type;
+    document.getElementById('taskPriority').value = task.priority;
+    document.getElementById('taskClient').value = task.clientId || '';
+    document.getElementById('taskAssignedUser').value = task.assignedUserId || '';
+    document.getElementById('taskDueDate').value = task.dueDate || '';
+    document.getElementById('taskDescription').value = task.description || '';
+    
+    if (task.type === 'recurring') {
+        document.getElementById('recurringFrequency').value = task.recurringFrequency || 'weekly';
+        document.getElementById('recurringEndDate').value = task.recurringEndDate || '';
+        
+        document.querySelectorAll('.day-checkbox').forEach(checkbox => {
+            checkbox.checked = task.recurringDays && task.recurringDays.includes(checkbox.value);
+        });
+    }
+    
+    toggleRecurringFields();
+    updateTaskClientOptions();
+    updateTaskUserOptions();
+    
+    const form = document.getElementById('taskForm');
+    form.onsubmit = function(e) {
+        e.preventDefault();
+        updateTask(taskId);
+    };
+    
+    form.querySelector('button[type="submit"]').textContent = 'Update Task';
+    
+    openTaskModal();
+}
+
+function updateTask(taskId) {
+    const taskIndex = tasks.findIndex(t => t.id === taskId);
+    if (taskIndex === -1) return;
+    
+    tasks[taskIndex] = {
+        ...tasks[taskIndex],
+        title: document.getElementById('taskTitle').value,
+        type: document.getElementById('taskType').value,
+        priority: document.getElementById('taskPriority').value,
+        clientId: document.getElementById('taskClient').value || null,
+        assignedUserId: document.getElementById('taskAssignedUser').value || null,
+        dueDate: document.getElementById('taskDueDate').value,
+        description: document.getElementById('taskDescription').value,
+        ...(document.getElementById('taskType').value === 'recurring' && {
+            recurringFrequency: document.getElementById('recurringFrequency').value,
+            recurringEndDate: document.getElementById('recurringEndDate').value,
+            recurringDays: Array.from(document.querySelectorAll('.day-checkbox:checked')).map(cb => cb.value)
+        })
+    };
+    
+    saveTasks();
+    closeTaskModal();
+    displayTasks();
+    updateDashboard();
+    
+    const form = document.getElementById('taskForm');
+    form.onsubmit = handleTaskSubmit;
+    form.querySelector('button[type="submit"]').textContent = 'Add Task';
+    
+    showNotification('Task updated successfully!', 'success');
+}
+
+function deleteTask(taskId) {
+    if (!checkPermission('delete', 'delete tasks')) return;
+    
+    if (!confirm('Are you sure you want to delete this task? This action cannot be undone.')) {
+        return;
+    }
+    
+    tasks = tasks.filter(t => t.id !== taskId);
+    saveTasks();
+    displayTasks();
+    updateDashboard();
+    
+    showNotification('Task deleted successfully!', 'success');
+}
+
+function searchTasks() {
+    const searchTerm = document.getElementById('taskSearch').value.toLowerCase();
+    const filteredTasks = tasks.filter(task => 
+        task.title.toLowerCase().includes(searchTerm) ||
+        (task.description && task.description.toLowerCase().includes(searchTerm))
+    );
+    
+    displayFilteredTasks(filteredTasks);
+}
+
+function filterTasks() {
+    const statusFilter = document.getElementById('taskStatusFilter').value;
+    const typeFilter = document.getElementById('taskTypeFilter').value;
+    const priorityFilter = document.getElementById('taskPriorityFilter').value;
+    const userFilter = document.getElementById('taskUserFilter').value;
+    const searchTerm = document.getElementById('taskSearch').value.toLowerCase();
+    
+    let filteredTasks = tasks;
+    
+    if (statusFilter) {
+        filteredTasks = filteredTasks.filter(task => task.status === statusFilter);
+    }
+    
+    if (typeFilter) {
+        filteredTasks = filteredTasks.filter(task => task.type === typeFilter);
+    }
+    
+    if (priorityFilter) {
+        filteredTasks = filteredTasks.filter(task => task.priority === priorityFilter);
+    }
+    
+    if (userFilter) {
+        if (userFilter === 'unassigned') {
+            filteredTasks = filteredTasks.filter(task => !task.assignedUserId);
+        } else if (userFilter === 'my-tasks') {
+            filteredTasks = filteredTasks.filter(task => task.assignedUserId === currentUser.id);
+        } else {
+            filteredTasks = filteredTasks.filter(task => task.assignedUserId === userFilter);
+        }
+    }
+    
+    if (searchTerm) {
+        filteredTasks = filteredTasks.filter(task => 
+            task.title.toLowerCase().includes(searchTerm) ||
+            (task.description && task.description.toLowerCase().includes(searchTerm))
+        );
+    }
+    
+    displayFilteredTasks(filteredTasks);
+}
+
+function displayFilteredTasks(filteredTasks) {
+    const tasksList = document.getElementById('tasksList');
+    const canEdit = hasPermission('edit');
+    const canDelete = hasPermission('delete');
+    
+    if (filteredTasks.length === 0) {
+        tasksList.innerHTML = '<div class="text-center py-12"><p class="text-gray-500">No tasks found matching your criteria.</p></div>';
+        return;
+    }
+    
+    tasksList.innerHTML = filteredTasks.map(task => {
+        const client = clients.find(c => c.id === task.clientId);
+        const assignedUser = task.assignedUserId ? users.find(u => u.id === task.assignedUserId) : null;
+        const priorityColor = getPriorityColor(task.priority);
+        const statusColor = getStatusColor(task.status);
+        const typeIcon = task.type === 'recurring' ? 'fa-sync-alt' : 'fa-clock';
+        
+        return `
+            <div class="task-card bg-white rounded-lg shadow p-6">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        <div class="flex items-center space-x-3 mb-2">
+                            <h3 class="font-semibold text-lg">${task.title}</h3>
+                            <i class="fas ${typeIcon} text-gray-400" title="${task.type}"></i>
+                        </div>
+                        
+                        ${task.description ? `<p class="text-gray-600 mb-3">${task.description}</p>` : ''}
+                        
+                        <div class="flex flex-wrap items-center gap-2 mb-3">
+                            <span class="inline-block px-2 py-1 text-xs rounded-full ${priorityColor}">${task.priority}</span>
+                            <span class="inline-block px-2 py-1 text-xs rounded-full ${statusColor}">${task.status}</span>
+                            ${client ? `<span class="inline-block px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700">${client.name}</span>` : ''}
+                            ${assignedUser ? `<span class="inline-block px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700">
+                                <i class="fas fa-user mr-1"></i>${assignedUser.fullName}
+                            </span>` : '<span class="inline-block px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-500">Unassigned</span>'}
+                        </div>
+                        
+                        <div class="flex items-center space-x-4 text-sm text-gray-500">
+                            ${task.dueDate ? `<span><i class="fas fa-calendar mr-1"></i>Due: ${formatDate(task.dueDate)}</span>` : ''}
+                            <span><i class="fas fa-plus-circle mr-1"></i>Created: ${formatDate(task.createdDate)}</span>
+                            ${task.type === 'recurring' ? `<span><i class="fas fa-redo mr-1"></i>${task.recurringFrequency}</span>` : ''}
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-col space-x-2 ml-4">
+                        ${task.status !== 'completed' && canEdit ? `
+                            <button onclick="updateTaskStatus('${task.id}', 'in-progress')" class="text-blue-600 hover:text-blue-800 mb-2" title="Mark in progress">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            <button onclick="updateTaskStatus('${task.id}', 'completed')" class="text-green-600 hover:text-green-800 mb-2" title="Mark complete">
+                                <i class="fas fa-check"></i>
+                            </button>
+                        ` : task.status === 'completed' && canEdit ? `
+                            <button onclick="updateTaskStatus('${task.id}', 'pending')" class="text-gray-600 hover:text-gray-800 mb-2" title="Reopen task">
+                                <i class="fas fa-undo"></i>
+                            </button>
+                        ` : ''}
+                        ${canEdit ? `<button onclick="editTask('${task.id}')" class="text-blue-600 hover:text-blue-800 mb-2" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>` : ''}
+                        ${canDelete ? `<button onclick="deleteTask('${task.id}')" class="text-red-600 hover:text-red-800" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>` : ''}
                     </div>
                 </div>
             </div>
