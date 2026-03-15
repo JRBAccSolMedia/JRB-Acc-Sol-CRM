@@ -423,6 +423,126 @@
                 </div>
             </div>
         </div>
+
+        <!-- Task Modal -->
+        <div id="taskModal" class="modal">
+            <div class="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold">Add New Task</h3>
+                        <button onclick="closeTaskModal()" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+
+                    <form id="taskForm" class="space-y-6">
+                        <!-- Basic Information -->
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h4 class="font-semibold mb-4">Task Information</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-medium mb-1">Task Title *</label>
+                                    <input type="text" id="taskTitle" required class="w-full border rounded-lg px-3 py-2">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Task Type *</label>
+                                    <select id="taskType" required class="w-full border rounded-lg px-3 py-2" onchange="toggleRecurringFields()">
+                                        <option value="">Select Type</option>
+                                        <option value="once-off">Once-off</option>
+                                        <option value="recurring">Recurring</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Priority *</label>
+                                    <select id="taskPriority" required class="w-full border rounded-lg px-3 py-2">
+                                        <option value="">Select Priority</option>
+                                        <option value="high">High</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="low">Low</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Assign to Client</label>
+                                    <select id="taskClient" class="w-full border rounded-lg px-3 py-2">
+                                        <option value="">No Client</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Assign to User</label>
+                                    <select id="taskAssignedUser" class="w-full border rounded-lg px-3 py-2">
+                                        <option value="">Unassigned</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Due Date</label>
+                                    <input type="date" id="taskDueDate" class="w-full border rounded-lg px-3 py-2">
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-medium mb-1">Description</label>
+                                    <textarea id="taskDescription" rows="3" class="w-full border rounded-lg px-3 py-2"></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recurring Task Fields -->
+                        <div id="recurringFields" class="bg-gray-50 p-4 rounded-lg hidden">
+                            <h4 class="font-semibold mb-4">Recurring Schedule</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Frequency</label>
+                                    <select id="recurringFrequency" class="w-full border rounded-lg px-3 py-2">
+                                        <option value="daily">Daily</option>
+                                        <option value="weekly">Weekly</option>
+                                        <option value="monthly">Monthly</option>
+                                        <option value="quarterly">Quarterly</option>
+                                        <option value="yearly">Yearly</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">End Date (Optional)</label>
+                                    <input type="date" id="recurringEndDate" class="w-full border rounded-lg px-3 py-2">
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-medium mb-1">Days of Week (for weekly)</label>
+                                    <div class="flex flex-wrap gap-2">
+                                        <label class="flex items-center">
+                                            <input type="checkbox" value="monday" class="day-checkbox mr-2"> Monday
+                                        </label>
+                                        <label class="flex items-center">
+                                            <input type="checkbox" value="tuesday" class="day-checkbox mr-2"> Tuesday
+                                        </label>
+                                        <label class="flex items-center">
+                                            <input type="checkbox" value="wednesday" class="day-checkbox mr-2"> Wednesday
+                                        </label>
+                                        <label class="flex items-center">
+                                            <input type="checkbox" value="thursday" class="day-checkbox mr-2"> Thursday
+                                        </label>
+                                        <label class="flex items-center">
+                                            <input type="checkbox" value="friday" class="day-checkbox mr-2"> Friday
+                                        </label>
+                                        <label class="flex items-center">
+                                            <input type="checkbox" value="saturday" class="day-checkbox mr-2"> Saturday
+                                        </label>
+                                        <label class="flex items-center">
+                                            <input type="checkbox" value="sunday" class="day-checkbox mr-2"> Sunday
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end space-x-4">
+                            <button type="button" onclick="closeTaskModal()" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                                Cancel
+                            </button>
+                            <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+                                Add Task
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="app.js"></script>
