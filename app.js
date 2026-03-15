@@ -44,18 +44,13 @@ function initializeDefaultUser() {
 
 // Welcome Page Function
 function enterApplication() {
-    console.log('enterApplication called');
-    console.log('currentUser:', currentUser);
-    
     document.getElementById('welcomePage').classList.add('hidden');
     document.getElementById('mainApp').classList.add('active');
     
     // Check if user is logged in
     if (!currentUser) {
-        console.log('Showing login modal');
         showLoginModal();
     } else {
-        console.log('Initializing app');
         initializeApp();
     }
 }
@@ -63,6 +58,12 @@ function enterApplication() {
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
     initializeDefaultUser();
+    
+    // Check for stored user session
+    const storedUser = localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser');
+    if (storedUser) {
+        currentUser = JSON.parse(storedUser);
+    }
     
     // Show welcome page by default
     document.getElementById('welcomePage').classList.remove('hidden');
@@ -86,12 +87,8 @@ function setupEventListeners() {
 
 // Authentication Functions
 function showLoginModal() {
-    console.log('showLoginModal called');
-    const modal = document.getElementById('loginModal');
-    console.log('Modal element:', modal);
-    modal.classList.add('active');
+    document.getElementById('loginModal').classList.add('active');
     document.body.style.overflow = 'hidden';
-    console.log('Modal classes after adding active:', modal.className);
 }
 
 function hideLoginModal() {
