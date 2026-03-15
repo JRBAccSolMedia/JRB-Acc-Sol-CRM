@@ -74,9 +74,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function setupEventListeners() {
     document.getElementById('loginForm').addEventListener('submit', handleLogin);
+    document.getElementById('userForm').addEventListener('submit', handleUserSubmit);
     document.getElementById('userMenuBtn').addEventListener('click', toggleUserDropdown);
     document.getElementById('logoutBtn').addEventListener('click', handleLogout);
     document.getElementById('manageUsersBtn').addEventListener('click', () => switchTab('users'));
+    document.getElementById('userRole').addEventListener('change', updateRolePermissions);
     
     document.addEventListener('click', function(e) {
         if (!e.target.closest('#userMenu')) {
@@ -407,7 +409,80 @@ function displayTasks() {
 // User Management Functions
 function openUserModal() {
     if (!checkPermission('manage_users', 'manage users')) return;
-    showNotification('User management features coming soon!', 'info');
+    
+    document.getElementById('userModal').classList.add('active');
+    document.getElementById('userForm').reset();
+    updateRolePermissions();
+}
+
+function closeUserModal() {
+    document.getElementById('userModal').classList.remove('active');
+}
+
+function updateRolePermissions() {
+    const role = document.getElementById('userRole').value;
+    const permissionsDiv = document.getElementById('rolePermissions');
+    
+    if (!role || !ROLES[role]) {
+        permissionsDiv.innerHTML = '<p>Select a role to view permissions</p>';
+        return;
+    }
+    
+    const roleInfo = ROLES[role];
+    permissionsDiv.innerHTML = `
+        <div class="space-y-2">
+            <p><strong>${roleInfo.name}</strong></p>
+            <p class="text-gray-600">${roleInfo.description}</p>
+            <div class="mt-2">
+                <strong>Permissions:</strong>
+                <ul class="list-disc list-inside mt-1">
+                    ${roleInfo.permissions.map(perm => `<li>${perm.charAt(0).toUpperCase() + perm.slice(1).replace('_', ' ')}</li>`).join('')}
+                </ul>
+            </div>
+        </div>
+    `;
+}
+
+function handleUserSubmit(e) {
+    e.preventDefault();
+    
+    if (!checkPermission('manage_users', 'manage users')) return;
+    
+    const username = document.getElementById('username').value;
+    const email = document.getElementById('userEmail').value;
+    const fullName = document.getElementById('fullName').value;
+    const role = document.getElementById('userRole').value;
+    const password = document.getElementById('userPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    
+    if (password !== confirmPassword) {
+        showNotification('Passwords do not match', 'error');
+        return;
+    }
+    
+    if (users.some(u => u.username === username)) {
+        showNotification('Username already exists', 'error');
+        return;
+    }
+    
+    const newUser = {
+        id: generateId(),
+        username,
+        email,
+        fullName,
+        role,
+        password: btoa(password),
+        createdDate: new Date().toISOString(),
+        isActive: true,
+        createdBy: currentUser.id
+    };
+    
+    users.push(newUser);
+    saveUsers();
+    
+    closeUserModal();
+    displayUsers();
+    showNotification('User created successfully!', 'success');
 }
 
 function displayUsers() {
@@ -427,6 +502,16 @@ function displayUsers() {
                 <div class="flex items-start justify-between mb-4">
                     <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                         <i class="fas fa-user text-blue-600"></i>
+                    </div>
+                    <div class="flex space-x-2">
+                        ${currentUser.id !== user.id ? `
+                            <button onclick="toggleUserStatus('${user.id}')" class="text-${user.isActive ? 'red' : 'green'}-600 hover:text-${user.isActive ? 'red' : 'green'}-800">
+                                <i class="fas fa-${user.isActive ? 'ban' : 'check'}"></i>
+                            </button>
+                            <button onclick="deleteUser('${user.id}')" class="text-red-600 hover:text-red-800">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        ` : '<span class="text-gray-400 text-sm">You</span>'}
                     </div>
                 </div>
                 
@@ -448,9 +533,50 @@ function displayUsers() {
                         </span>
                     </div>
                 </div>
+                
+                <div class="mt-4 pt-4 border-t text-xs text-gray-400">
+                    <p>Created: ${formatDate(user.createdDate)}</p>
+                    ${user.lastLogin ? `<p>Last login: ${formatDate(user.lastLogin)}</p>` : ''}
+                </div>
             </div>
         `;
     }).join('');
+}
+
+function toggleUserStatus(userId) {
+    if (!checkPermission('manage_users', 'manage users')) return;
+    
+    const user = users.find(u => u.id === userId);
+    if (!user || user.id === currentUser.id) {
+        showNotification('You cannot deactivate your own account', 'error');
+        return;
+    }
+    
+    user.isActive = !user.isActive;
+    saveUsers();
+    displayUsers();
+    
+    showNotification(`User ${user.isActive ? 'activated' : 'deactivated'} successfully!`, 'success');
+}
+
+function deleteUser(userId) {
+    if (!checkPermission('manage_users', 'manage users')) return;
+    
+    const user = users.find(u => u.id === userId);
+    if (!user || user.id === currentUser.id) {
+        showNotification('You cannot delete your own account', 'error');
+        return;
+    }
+    
+    if (!confirm(`Are you sure you want to delete user "${user.fullName}"? This action cannot be undone.`)) {
+        return;
+    }
+    
+    users = users.filter(u => u.id !== userId);
+    saveUsers();
+    displayUsers();
+    
+    showNotification('User deleted successfully!', 'success');
 }
 
 // Placeholder functions for features not yet implemented
