@@ -373,8 +373,10 @@ function displayClients() {
 
 // Task Management Functions
 function openTaskModal() {
+    console.log('openTaskModal called');
     if (!checkPermission('create', 'create tasks')) return;
     
+    console.log('Permission granted, opening modal');
     document.getElementById('taskModal').classList.add('active');
     document.getElementById('taskForm').reset();
     toggleRecurringFields();
@@ -390,6 +392,8 @@ function toggleRecurringFields() {
     const taskType = document.getElementById('taskType').value;
     const recurringFields = document.getElementById('recurringFields');
     
+    console.log('toggleRecurringFields called, taskType:', taskType);
+    
     if (taskType === 'recurring') {
         recurringFields.classList.remove('hidden');
     } else {
@@ -399,6 +403,8 @@ function toggleRecurringFields() {
 
 function updateTaskClientOptions() {
     const select = document.getElementById('taskClient');
+    console.log('updateTaskClientOptions called, clients:', clients);
+    
     select.innerHTML = '<option value="">No Client</option>' +
         clients.map(client => `<option value="${client.id}">${client.name}</option>`).join('');
 }
@@ -407,12 +413,15 @@ function updateTaskUserOptions() {
     const select = document.getElementById('taskAssignedUser');
     const activeUsers = users.filter(user => user.isActive);
     
+    console.log('updateTaskUserOptions called, activeUsers:', activeUsers);
+    
     select.innerHTML = '<option value="">Unassigned</option>' +
         activeUsers.map(user => `<option value="${user.id}">${user.fullName}</option>`).join('');
 }
 
 function handleTaskSubmit(e) {
     e.preventDefault();
+    console.log('handleTaskSubmit called');
     
     const task = {
         id: generateId(),
@@ -432,6 +441,8 @@ function handleTaskSubmit(e) {
             recurringDays: Array.from(document.querySelectorAll('.day-checkbox:checked')).map(cb => cb.value)
         })
     };
+    
+    console.log('Task data:', task);
     
     tasks.push(task);
     saveTasks();
